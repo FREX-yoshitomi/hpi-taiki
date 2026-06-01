@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>吉富大起のHPI — 俺の人生を、ひとつのインターフェースに。</title>
+<meta name="description" content="HPI (Human Programming Interface) — 散らばった俺の人生の痕跡を、ひとつのAPIで触れるようにする。吉富大起版の構想と設計。" />
+<style>
+  :root{
+    --bg:#0a0b10;
+    --bg2:#0d0f17;
+    --panel:#11131c;
+    --panel2:#141726;
+    --line:rgba(255,255,255,.08);
+    --line2:rgba(255,255,255,.14);
+    --fg:#e9ebf2;
+    --fg-dim:#9aa0b4;
+    --fg-mute:#6a7088;
+    --violet:#8b6cff;
+    --violet-soft:#a48cff;
+    --mint:#46e3a8;
+    --amber:#ffc879;
+    --pink:#ff7ab6;
+    --radius:16px;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono","Consolas","Menlo",monospace;
+    --sans:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Noto Sans JP","Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--bg);color:var(--fg);
+    font-family:var(--sans);line-height:1.85;letter-spacing:.01em;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  /* 背景のほのかなグロー */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(900px 600px at 78% -8%, rgba(139,108,255,.16), transparent 60%),
+      radial-gradient(800px 600px at 8% 12%, rgba(70,227,168,.08), transparent 55%),
+      linear-gradient(180deg,var(--bg) 0%, var(--bg2) 100%);
+  }
+  /* かすかなグリッド */
+  body::after{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 80%);
+  }
+  a{color:var(--violet-soft);text-decoration:none;}
+  a:hover{text-decoration:underline;text-underline-offset:3px;}
+
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px;}
+
+  /* ===== ナビ ===== */
+  nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:saturate(140%) blur(12px);
+    background:rgba(10,11,16,.72);border-bottom:1px solid var(--line);
+  }
+  nav .wrap{display:flex;align-items:center;gap:18px;height:56px;}
+  nav .brand{font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.04em;color:var(--fg);white-space:nowrap;}
+  nav .brand .dot{color:var(--violet);}
+  nav .links{display:flex;gap:18px;margin-left:auto;overflow-x:auto;}
+  nav .links a{font-size:12.5px;color:var(--fg-dim);font-family:var(--mono);letter-spacing:.03em;white-space:nowrap;}
+  nav .links a:hover{color:var(--fg);text-decoration:none;}
+  @media(max-width:680px){nav .links{display:none;}}
+
+  /* ===== ヒーロー ===== */
+  header.hero{padding:96px 0 64px;position:relative;}
+  .kicker{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--violet-soft);margin-bottom:22px;display:flex;align-items:center;gap:12px;
+  }
+  .kicker::before{content:"";width:30px;height:1px;background:linear-gradient(90deg,var(--violet),transparent);}
+  h1.title{
+    font-size:clamp(34px,6.4vw,68px);line-height:1.18;margin:0 0 22px;font-weight:800;
+    letter-spacing:-.01em;
+  }
+  h1.title .grad{
+    background:linear-gradient(120deg,#fff 0%,var(--violet-soft) 45%,var(--mint) 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .lead{font-size:clamp(16px,2.2vw,19px);color:var(--fg-dim);max-width:660px;margin:0 0 34px;}
+  .lead b{color:var(--fg);font-weight:600;}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-family:var(--mono);font-size:12.5px;color:var(--fg-mute);}
+  .pill{
+    border:1px solid var(--line2);border-radius:999px;padding:6px 14px;
+    background:rgba(255,255,255,.02);color:var(--fg-dim);
+  }
+  .pill.live{color:var(--mint);border-color:rgba(70,227,168,.35);}
+  .pill.live::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--mint);margin-right:8px;box-shadow:0 0 10px var(--mint);vertical-align:middle;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ===== セクション ===== */
+  section{padding:46px 0;border-top:1px solid var(--line);}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:26px;}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--violet);letter-spacing:.1em;padding-top:4px;}
+  .sec-head h2{font-size:clamp(22px,3.4vw,30px);margin:0;font-weight:750;letter-spacing:-.01em;}
+  .sec-head .en{font-family:var(--mono);font-size:12px;color:var(--fg-mute);letter-spacing:.1em;text-transform:uppercase;margin-left:auto;align-self:center;}
+  p{margin:0 0 16px;}
+  p.big{font-size:17.5px;color:var(--fg);}
+  .muted{color:var(--fg-dim);}
+
+  /* 問題リスト */
+  ul.pains{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:12px;}
+  ul.pains li{
+    padding:14px 18px 14px 44px;position:relative;border:1px solid var(--line);
+    border-radius:12px;background:linear-gradient(180deg,var(--panel),rgba(17,19,28,.5));color:var(--fg-dim);
+  }
+  ul.pains li::before{content:"×";position:absolute;left:16px;top:13px;color:var(--pink);font-family:var(--mono);font-weight:700;}
+  ul.pains li b{color:var(--fg);font-weight:600;}
+
+  /* 原則カード */
+  .principles{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  @media(max-width:640px){.principles{grid-template-columns:1fr;}}
+  .principle{
+    border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--panel);
+    transition:border-color .25s, transform .25s;
+  }
+  .principle:hover{border-color:var(--line2);transform:translateY(-2px);}
+  .principle .ico{font-family:var(--mono);font-size:12px;color:var(--violet);letter-spacing:.12em;margin-bottom:10px;}
+  .principle h3{margin:0 0 8px;font-size:16.5px;}
+  .principle p{margin:0;font-size:14.5px;color:var(--fg-dim);line-height:1.75;}
+
+  /* アーキテクチャ図 */
+  .arch{display:grid;gap:0;margin-top:8px;}
+  .layer{
+    border:1px solid var(--line2);border-radius:14px;padding:20px 22px;background:var(--panel);
+    position:relative;
+  }
+  .layer .lnum{font-family:var(--mono);font-size:11px;color:var(--fg-mute);letter-spacing:.1em;}
+  .layer h4{margin:6px 0 6px;font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .layer h4 .tag{font-family:var(--mono);font-size:11px;color:var(--violet-soft);border:1px solid var(--line2);border-radius:6px;padding:2px 8px;}
+  .layer p{margin:0;font-size:14px;color:var(--fg-dim);}
+  .arrow{height:34px;display:flex;align-items:center;justify-content:center;color:var(--fg-mute);}
+  .arrow span{font-family:var(--mono);font-size:18px;line-height:1;}
+  .layer.l1{box-shadow:inset 0 0 0 1px rgba(255,200,121,.08);}
+  .layer.l2{box-shadow:inset 0 0 0 1px rgba(70,227,168,.08);}
+  .layer.l3{box-shadow:inset 0 0 0 1px rgba(139,108,255,.12);}
+
+  /* データ源グリッド */
+  .sources{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+  @media(max-width:640px){.sources{grid-template-columns:1fr;}}
+  .scard{border:1px solid var(--line);border-radius:14px;padding:20px;background:var(--panel);}
+  .scard .cat{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .scard .cat .emoji{font-size:18px;}
+  .scard .cat h3{margin:0;font-size:15.5px;letter-spacing:.01em;}
+  .scard ul{list-style:none;margin:0;padding:0;display:grid;gap:10px;}
+  .scard li{display:flex;flex-direction:column;gap:3px;font-size:13.5px;}
+  .scard .svc{color:var(--fg);font-weight:600;}
+  .scard .how{color:var(--fg-mute);font-size:12px;}
+  .mod{font-family:var(--mono);font-size:11.5px;color:var(--mint);background:rgba(70,227,168,.07);border:1px solid rgba(70,227,168,.2);border-radius:6px;padding:1px 7px;align-self:flex-start;}
+
+  /* ターミナル/コード */
+  .term{border:1px solid var(--line2);border-radius:14px;overflow:hidden;background:#0c0e16;margin:6px 0 4px;}
+  .term .bar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line);}
+  .term .bar i{width:11px;height:11px;border-radius:50%;display:inline-block;}
+  .term .bar i:nth-child(1){background:#ff5f56;}
+  .term .bar i:nth-child(2){background:#ffbd2e;}
+  .term .bar i:nth-child(3){background:#27c93f;}
+  .term .bar .fn{margin-left:8px;font-family:var(--mono);font-size:12px;color:var(--fg-mute);}
+  .term pre{margin:0;padding:18px 18px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7;color:#dfe3ee;}
+  .term pre .c{color:#5f6680;}    /* コメント */
+  .term pre .k{color:var(--violet-soft);}  /* キーワード */
+  .term pre .s{color:var(--mint);}  /* 文字列 */
+  .term pre .f{color:var(--amber);} /* 関数/属性 */
+  .term pre .o{color:var(--pink);}  /* 演算子的 */
+
+  /* ユースケース */
+  .uses{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  @media(max-width:640px){.uses{grid-template-columns:1fr;}}
+  .use{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);}
+  .use h4{margin:0 0 6px;font-size:15px;display:flex;align-items:center;gap:8px;}
+  .use h4 .n{font-family:var(--mono);font-size:11px;color:var(--violet);}
+  .use p{margin:0;font-size:13.5px;color:var(--fg-dim);line-height:1.7;}
+
+  /* ロードマップ */
+  .road{position:relative;margin-left:6px;padding-left:30px;}
+  .road::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--violet),rgba(139,108,255,.1));}
+  .phase{position:relative;padding:0 0 26px;}
+  .phase::before{content:"";position:absolute;left:-30px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--fg-mute);}
+  .phase.now::before{border-color:var(--mint);background:var(--mint);box-shadow:0 0 0 5px rgba(70,227,168,.15),0 0 14px var(--mint);}
+  .phase.done::before{border-color:var(--violet);background:var(--violet);}
+  .phase .ph{font-family:var(--mono);font-size:11.5px;color:var(--violet-soft);letter-spacing:.08em;}
+  .phase.now .ph{color:var(--mint);}
+  .phase h4{margin:4px 0 6px;font-size:16px;}
+  .phase h4 .here{font-family:var(--mono);font-size:10.5px;color:var(--bg);background:var(--mint);border-radius:5px;padding:2px 7px;margin-left:8px;vertical-align:middle;letter-spacing:.05em;}
+  .phase p{margin:0;font-size:14px;color:var(--fg-dim);}
+
+  /* フッター */
+  footer{border-top:1px solid var(--line);padding:40px 0 70px;color:var(--fg-mute);font-size:13px;}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;}
+  footer .sig{font-family:var(--mono);}
+  footer .sig b{color:var(--fg-dim);}
+
+  /* スクロール出現 */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <span class="brand">my<span class="dot">.</span>taiki</span>
+    <div class="links">
+      <a href="#why">なぜ</a>
+      <a href="#principles">設計思想</a>
+      <a href="#arch">アーキテクチャ</a>
+      <a href="#sources">データ源</a>
+      <a href="#api">API</a>
+      <a href="#uses">できること</a>
+      <a href="#road">ロードマップ</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">HPI — Human Programming Interface</div>
+    <h1 class="title">俺の人生を、<br><span class="grad">ひとつのインターフェース</span>に。</h1>
+    <p class="lead">
+      X の投稿も、GitHub のコミットも、昨日の睡眠も、今朝聴いた曲も——
+      バラバラのサービスに散らばった<b>俺・吉富大起の人生の痕跡</b>を、手元のコードから
+      <b>ひとつのAPI</b>で触れるようにする。これは、その構想と設計。
+    </p>
+    <div class="hero-meta">
+      <span class="pill live">Phase 4 — ダッシュボード稼働中</span>
+      <span class="pill">吉富大起 / FREX</span>
+      <span class="pill">2026 —</span>
+      <span class="pill">inspired by karlicoss/HPI</span>
+    </div>
+    <p style="margin-top:24px;font-size:13px;color:var(--fg-mute);font-family:var(--mono)">※ データのダッシュボードはプライバシー保持のため手元(ローカル)で稼働します。</p>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 00 これは何か -->
+  <section id="what" class="reveal">
+    <div class="sec-head"><span class="sec-num">00</span><h2>これは何か</h2><span class="en">What</span></div>
+    <p class="big">
+      <b>HPI = Human Programming Interface。</b>
+      自分の人生のデジタルな痕跡を、各サービスの檻から引き剥がして、手元に集約し、
+      <code class="mod" style="display:inline-block">my.x.tweets()</code> のように
+      プログラムから統一的に触れるようにする仕組み。
+    </p>
+    <p class="muted">
+      karlicoss の <a href="https://beepb00p.xyz/hpi.html" target="_blank" rel="noopener">HPI</a>(「自分の人生をPythonパッケージにする」)に着想を得て、
+      <b style="color:var(--fg)">吉富大起という人間のための実装</b>をゼロから組み立てる。GUI でも、誰かのアルゴリズムでもなく、
+      自分のコードで自分のデータに向き合うための土台。
+    </p>
+  </section>
+
+  <!-- 01 なぜ -->
+  <section id="why" class="reveal">
+    <div class="sec-head"><span class="sec-num">01</span><h2>なぜ作るのか</h2><span class="en">Why</span></div>
+    <p>俺のデータは20以上のサービスに散らばっていて、横断できない。これが日常的に困る。</p>
+    <ul class="pains">
+      <li><b>サイロに閉じ込められている</b> — LINE の会話を3年前まで遡れない。GitHub の活動とカレンダーの予定を突き合わせられない。</li>
+      <li><b>サービスの UI に支配されている</b> — 各サービスの「おすすめ」や狭い検索窓からしか、自分のデータに触れられない。</li>
+      <li><b>横断検索ができない</b> — 「あの話、どこで誰と喋ったっけ?」が、Slack・LINE・X・メモを全部手で探すしかない。</li>
+      <li><b>記憶が外部に預けっぱなし</b> — しかも各社のさじ加減でいつ消えるか分からない。自分の痕跡なのに、自分でコントロールできない。</li>
+    </ul>
+    <p class="muted" style="margin-top:18px">
+      デジタルな痕跡は、俺が何を考え・何をして・何に時間を使ったかの記録——つまり<b style="color:var(--fg)">アイデンティティの一部</b>だ。
+      なら、それは俺がコントロールすべきだし、コードで自由に触れられるべきだ。記憶と集計はコンピュータに任せ、判断と創造は自分がやる。
+    </p>
+  </section>
+
+  <!-- 02 設計思想 -->
+  <section id="principles" class="reveal">
+    <div class="sec-head"><span class="sec-num">02</span><h2>設計思想</h2><span class="en">Principles</span></div>
+    <div class="principles">
+      <div class="principle">
+        <div class="ico">▌LOCAL-FIRST</div>
+        <h3>ローカルファースト</h3>
+        <p>クラウドに常時接続しない。各サービスから定期的にエクスポート → 手元に集約 → ローカルのデータだけを読む。速い・堅い・オフラインでも動く。多少のラグは許容する。</p>
+      </div>
+      <div class="principle">
+        <div class="ico">▌MODULAR</div>
+        <h3>モジュール式</h3>
+        <p>データ源ごとに独立したモジュール。必要な分だけ繋ぐ。ひとつが壊れても他に波及しない。新しい源は <code class="mod" style="display:inline-block">my.&lt;name&gt;</code> を足すだけ。</p>
+      </div>
+      <div class="principle">
+        <div class="ico">▌CODE IS UI</div>
+        <h3>コードがインターフェース</h3>
+        <p>触る対象は GUI ではなく Python オブジェクト。スキーマの硬さより、コードの柔らかさで現実の揺らぎ(形式変更・欠損)を吸収する。</p>
+      </div>
+      <div class="principle">
+        <div class="ico">▌PRIVATE BY DESIGN</div>
+        <h3>プライバシーは自分の手に</h3>
+        <p>データは外に出さない。手元に置く。共有するのはコードだけ。個人情報を含む設定とデータは <code class="mod" style="display:inline-block">.gitignore</code> で隔離する。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 アーキテクチャ -->
+  <section id="arch" class="reveal">
+    <div class="sec-head"><span class="sec-num">03</span><h2>アーキテクチャ</h2><span class="en">Architecture</span></div>
+    <p class="muted">3層に分ける。各層は疎結合で、下から上へデータが流れる。</p>
+    <div class="arch">
+      <div class="layer l1">
+        <div class="lnum">LAYER 1</div>
+        <h4>エクスポート層 <span class="tag">export</span></h4>
+        <p>各サービスからデータを取り出す。公式エクスポート(X アーカイブ / Google Takeout)・API・スクレイピング・手動。<code class="mod" style="display:inline-block">cron</code> で定期実行して自動化していく。</p>
+      </div>
+      <div class="arrow"><span>↓</span></div>
+      <div class="layer l2">
+        <div class="lnum">LAYER 2</div>
+        <h4>集約層 <span class="tag">local store</span></h4>
+        <p>取り出した「生データ」を手元に貯める。JSON / SQLite / ファイルそのまま。<code class="mod" style="display:inline-block">~/data/&lt;source&gt;/</code> 以下に源ごとに整理。ここはまだ加工しない。</p>
+      </div>
+      <div class="arrow"><span>↓</span></div>
+      <div class="layer l3">
+        <div class="lnum">LAYER 3</div>
+        <h4>アクセス層 <span class="tag">my.* package</span></h4>
+        <p>生データを読み、正規化した Python オブジェクトを返す。<code class="mod" style="display:inline-block">my.*</code> 名前空間。「どこにあるか・どう読むか・エラー処理・キャッシュ」を内部に隠し、上のコードは綺麗な API だけを見る。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 データ源 -->
+  <section id="sources" class="reveal">
+    <div class="sec-head"><span class="sec-num">04</span><h2>俺のデータ源</h2><span class="en">Sources</span></div>
+    <p class="muted">繋ぎたい源を4カテゴリで整理。各サービスにエクスポート手段と <code class="mod" style="display:inline-block">my.*</code> モジュール名を割り当てる。後から増減できる。</p>
+    <div class="sources">
+
+      <div class="scard">
+        <div class="cat"><span class="emoji">💬</span><h3>SNS / メッセージ</h3></div>
+        <ul>
+          <li><span class="svc">X (Twitter)</span><span class="how">設定 → データのアーカイブをダウンロード</span><span class="mod">my.x</span></li>
+          <li><span class="svc">LINE</span><span class="how">各トーク → トーク履歴を送信(テキスト)</span><span class="mod">my.line</span></li>
+          <li><span class="svc">Instagram</span><span class="how">情報のダウンロード(JSON)</span><span class="mod">my.instagram</span></li>
+          <li><span class="svc">Slack</span><span class="how">FREX ワークスペースのエクスポート</span><span class="mod">my.slack</span></li>
+          <li><span class="svc">Discord</span><span class="how">プライバシー → データをリクエスト</span><span class="mod">my.discord</span></li>
+        </ul>
+      </div>
+
+      <div class="scard">
+        <div class="cat"><span class="emoji">⚙️</span><h3>仕事 / 開発</h3></div>
+        <ul>
+          <li><span class="svc">GitHub</span><span class="how">API / イベント / コミット履歴</span><span class="mod">my.github ✓</span></li>
+          <li><span class="svc">ローカル git リポジトリ</span><span class="how">git log(エクスポート不要)</span><span class="mod">my.git ✓</span></li>
+          <li><span class="svc">Google カレンダー</span><span class="how">Takeout(ICS)</span><span class="mod">my.calendar</span></li>
+          <li><span class="svc">メモ (Obsidian / Notion)</span><span class="how">Markdown / エクスポート</span><span class="mod">my.notes</span></li>
+          <li><span class="svc">タスク</span><span class="how">使用ツールのエクスポート</span><span class="mod">my.tasks</span></li>
+          <li><span class="svc">FREX プロジェクト</span><span class="how">Agent Atelier / 経営管理 / コンシェルジュ</span><span class="mod">my.frex</span></li>
+        </ul>
+      </div>
+
+      <div class="scard">
+        <div class="cat"><span class="emoji">🫀</span><h3>健康 / ライフログ</h3></div>
+        <ul>
+          <li><span class="svc">睡眠・心拍・運動</span><span class="how">Apple ヘルスケア書き出し(XML)等</span><span class="mod">my.health</span></li>
+          <li><span class="svc">体重</span><span class="how">ヘルスケア / スマート体重計</span><span class="mod">my.weight</span></li>
+          <li><span class="svc">位置情報</span><span class="how">Google ロケーション履歴(Takeout)</span><span class="mod">my.location</span></li>
+        </ul>
+      </div>
+
+      <div class="scard">
+        <div class="cat"><span class="emoji">🎧</span><h3>メディア消費</h3></div>
+        <ul>
+          <li><span class="svc">YouTube</span><span class="how">Takeout(視聴・検索履歴)</span><span class="mod">my.youtube</span></li>
+          <li><span class="svc">音楽 (Spotify / Last.fm)</span><span class="how">拡張ストリーミング履歴 / scrobbles</span><span class="mod">my.music</span></li>
+          <li><span class="svc">読書 (Kindle)</span><span class="how">ハイライト / メモ</span><span class="mod">my.reading</span></li>
+        </ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 05 API -->
+  <section id="api" class="reveal">
+    <div class="sec-head"><span class="sec-num">05</span><h2>統一API: <code style="font-family:var(--mono);font-size:.7em;color:var(--mint)">my.*</code> の設計</h2><span class="en">The Interface</span></div>
+    <p class="muted">すべてのアイテムは最小共通項として <code class="mod" style="display:inline-block">dt</code>(発生時刻)・<code class="mod" style="display:inline-block">source</code>・<code class="mod" style="display:inline-block">kind</code>・<code class="mod" style="display:inline-block">text</code>・<code class="mod" style="display:inline-block">raw</code> を持つ。これがあるから横断とタイムライン化ができる。</p>
+
+    <div class="term">
+      <div class="bar"><i></i><i></i><i></i><span class="fn">~/hpi-taiki — python</span></div>
+<pre><span class="k">import</span> my.x, my.github, my.music
+<span class="k">from</span> collections <span class="k">import</span> Counter
+<span class="k">from</span> datetime <span class="k">import</span> date
+
+<span class="c"># 直近の自分が一番ツイートしてる時間帯トップ3</span>
+Counter(t.dt.hour <span class="k">for</span> t <span class="k">in</span> my.x.<span class="f">tweets</span>()).<span class="f">most_common</span>(<span class="o">3</span>)
+
+<span class="c"># 今日のサマリー: コミット数 / 聴いた曲数</span>
+today = date.<span class="f">today</span>()
+commits = [c <span class="k">for</span> c <span class="k">in</span> my.github.<span class="f">commits</span>() <span class="k">if</span> c.dt.<span class="f">date</span>() == today]
+songs   = [m <span class="k">for</span> m <span class="k">in</span> my.music.<span class="f">scrobbles</span>() <span class="k">if</span> m.dt.<span class="f">date</span>() == today]
+<span class="f">print</span>(<span class="s">f"今日: {len(commits)} commits / {len(songs)} 曲"</span>)</pre>
+    </div>
+
+    <p class="muted" style="margin-top:18px">横断は「全部の源を <code class="mod" style="display:inline-block">dt</code> で並べる」だけ:</p>
+    <div class="term">
+      <div class="bar"><i></i><i></i><i></i><span class="fn">my/timeline.py</span></div>
+<pre><span class="k">import</span> my.x, my.github, my.slack, my.youtube
+<span class="k">from</span> itertools <span class="k">import</span> chain
+
+<span class="c"># 全データ源を1本の時系列に統合 = 「俺の人生のログ」</span>
+events = <span class="f">sorted</span>(
+    chain(my.x.<span class="f">tweets</span>(), my.github.<span class="f">commits</span>(),
+          my.slack.<span class="f">messages</span>(), my.youtube.<span class="f">watched</span>()),
+    key=<span class="k">lambda</span> e: e.dt,
+)
+<span class="k">for</span> e <span class="k">in</span> events[-<span class="o">10</span>:]:
+    <span class="f">print</span>(e.dt, e.source, <span class="s">"|"</span>, e.text[:<span class="o">60</span>])</pre>
+    </div>
+  </section>
+
+  <!-- 06 できること -->
+  <section id="uses" class="reveal">
+    <div class="sec-head"><span class="sec-num">06</span><h2>これで何ができるか</h2><span class="en">Use cases</span></div>
+    <div class="uses">
+      <div class="use"><h4><span class="n">A</span>横断タイムライン</h4><p>全データ源を時系列に統合した「俺の人生のログ」。あの日、何をして・誰と話して・何を聴いていたか。</p></div>
+      <div class="use"><h4><span class="n">B</span>全文検索</h4><p>過去の全チャット・メモ・投稿を、ひとつの検索窓で。サービスを跨いで「あの話」を一発で。</p></div>
+      <div class="use"><h4><span class="n">C</span>ライフログ分析</h4><p>睡眠 × 生産性(コミット数)× 気分の相関。データドリブンに自分のコンディションを理解する。</p></div>
+      <div class="use"><h4><span class="n">D</span>記憶の補助</h4><p>「このURL前にいつ見た?」をブラウザ上で。痕跡を辿れる外部記憶(promnesia 的)。</p></div>
+      <div class="use"><h4><span class="n">E</span>年次レビュー</h4><p>1年の活動を自動で振り返り。読んだ本・聴いた曲・行った場所・書いたコードの総括。</p></div>
+      <div class="use"><h4><span class="n">F</span>AIへの文脈供給</h4><p>正規化済みの自分データを、自作 AI(FREX の各プロダクト)の文脈として安全に渡す土台。</p></div>
+    </div>
+  </section>
+
+  <!-- 07 ロードマップ -->
+  <section id="road" class="reveal">
+    <div class="sec-head"><span class="sec-num">07</span><h2>段階的に作る</h2><span class="en">Roadmap</span></div>
+    <div class="road">
+      <div class="phase done">
+        <div class="ph">PHASE 0 ✓</div>
+        <h4>構想と土台</h4>
+        <p>この構想ページ + <code class="mod" style="display:inline-block">my/</code> パッケージの骨組み(共通スキーマ <code class="mod" style="display:inline-block">Item</code> と <code class="mod" style="display:inline-block">my.timeline</code>)。設計を言葉と型で固めた。</p>
+      </div>
+      <div class="phase done">
+        <div class="ph">PHASE 1 ✓</div>
+        <h4>最初の1本を通した — GitHub</h4>
+        <p><code class="mod" style="display:inline-block">gh api</code> でイベントとコミットを取得 → <code class="mod" style="display:inline-block">data/github/</code> に集約 → <code class="mod" style="display:inline-block">my.github.events()</code> / <code class="mod" style="display:inline-block">commits()</code> が実データで動作。エクスポート→集約→アクセスの全層が貫通。</p>
+      </div>
+      <div class="phase done">
+        <div class="ph">PHASE 2 ✓</div>
+        <h4>横断の核</h4>
+        <p>2本目の源 <code class="mod" style="display:inline-block">my.git</code>(ローカルリポジトリ)を追加し、<code class="mod" style="display:inline-block">my.timeline</code> で github × git の横断を実証。残る源(X / Slack 等)は本人のエクスポート待ち。</p>
+      </div>
+      <div class="phase done">
+        <div class="ph">PHASE 3 ✓</div>
+        <h4>検索 / 自動化</h4>
+        <p>全データ源を横断する全文検索 <code class="mod" style="display:inline-block">my.search</code>、一括更新 <code class="mod" style="display:inline-block">tools/refresh.py</code> を実装。定期実行の登録は任意。索引化は今後。</p>
+      </div>
+      <div class="phase now">
+        <div class="ph">PHASE 4</div>
+        <h4>可視化 / ダッシュボード<span class="here">現在地</span></h4>
+        <p><code class="mod" style="display:inline-block">dashboard.html</code>(手元で稼働) が稼働 — 活動ヒートマップ・源別/種類別の内訳・検索付きタイムライン。年次レビューや AI への文脈供給へ拡充していく。</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="sig">my<span style="color:var(--violet)">.</span>taiki — <b>吉富大起</b> の HPI / Phase 0 / 2026 —</span>
+    <span>inspired by <a href="https://beepb00p.xyz/hpi.html" target="_blank" rel="noopener">karlicoss/HPI</a> に敬意を込めて</span>
+  </div>
+</footer>
+
+<script>
+  // スクロールで各セクションをふわっと出現
+  (function(){
+    var els = document.querySelectorAll('.reveal');
+    if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in');});return;}
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target);} });
+    },{threshold:.12});
+    els.forEach(function(e){io.observe(e);});
+  })();
+</script>
+</body>
+</html>
